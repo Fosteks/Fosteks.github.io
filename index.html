@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Тетрис</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Стартовый экран -->
+  <div id="landing-screen" class="screen screen--active">
+    <div class="background">
+      <div class="landing-parallax-layer landing-parallax-layer--far" aria-hidden="true"></div>
+      <div class="landing-parallax-layer landing-parallax-layer--mid" aria-hidden="true"></div>
+      <div class="landing-parallax-layer landing-parallax-layer--near" aria-hidden="true"></div>
+    </div>
+    <div class="landing-content">
+      <h1 class="title">Тетрис</h1>
+      <button id="start-button" class="btn btn-primary">Начать</button>
+    </div>
+  </div>
+
+  <!-- Игровой экран -->
+  <div id="game-screen" class="screen screen--hidden">
+    <div class="background">
+      <div class="game-bg" aria-hidden="true"></div>
+    </div>
+    <header class="game-header">
+      <div id="score" class="score-display">Очки: 0</div>
+    </header>
+    <main class="game-main">
+      <div id="game-board-wrapper" class="game-board-wrapper">
+        <div id="game-board" class="game-board" aria-label="Игровое поле"></div>
+      </div>
+      <div class="controls">
+        <button id="btn-left" class="btn control-btn">Влево</button>
+        <button id="btn-rotate" class="btn control-btn">Повернуть</button>
+        <button id="btn-right" class="btn control-btn">Вправо</button>
+      </div>
+    </main>
+    <div id="game-over-overlay" class="game-over-overlay screen--hidden">
+      <div class="game-over-content">
+        <p class="game-over-text">Игра окончена</p>
+        <p id="final-score" class="game-over-score">Ваши очки: 0</p>
+        <button id="restart-button" class="btn btn-secondary">Сыграть ещё раз</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
+

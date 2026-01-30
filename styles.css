@@ -134,6 +134,32 @@ body::before {
 }
 
 /* Панель вокруг формы — нео-футуристический хакерский стиль, мягкий для глаз */
+.landing-high-score {
+  margin: 1rem 0 0.5rem 0;
+  font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  color: rgba(34, 211, 238, 0.9);
+}
+
+.leaderboard-wrap {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.leaderboard-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(34, 211, 238, 0.7);
+}
+
+.leaderboard-wrap .leaderboard-list {
+  display: inline-block;
+  margin: 0;
+  min-width: 8rem;
+}
+
 .landing-content {
   position: relative;
   z-index: 1;
@@ -253,6 +279,20 @@ body::before {
     0 0 26px rgba(37, 99, 235, 0.7),
     0 0 52px rgba(59, 130, 246, 0.4);
   backdrop-filter: blur(8px);
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.game-board-wrapper--visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+#game-screen {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .game-board {
@@ -266,6 +306,7 @@ body::before {
   gap: 1px;
   padding: 3px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .cell {
@@ -282,8 +323,9 @@ body::before {
     0 0 14px var(--cell-color);
 }
 
-.board--glow .cell--filled {
-  animation: boardGlow 0.9s ease-out;
+.board--glow .cell--filled,
+.board--pulse .cell--filled {
+  animation: boardGlow 0.5s ease-out;
 }
 
 @keyframes boardGlow {
@@ -291,7 +333,7 @@ body::before {
     box-shadow: 0 0 8px var(--cell-color), 0 0 14px var(--cell-color);
   }
   50% {
-    box-shadow: 0 0 10px var(--cell-color), 0 0 16px var(--cell-color);
+    box-shadow: 0 0 9px var(--cell-color), 0 0 15px var(--cell-color);
   }
 }
 
@@ -375,6 +417,45 @@ body::before {
   }
 }
 
+.next-preview-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.next-preview-label {
+  font-size: 0.85rem;
+  color: rgba(34, 211, 238, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.next-preview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 2px;
+  width: 56px;
+  height: 56px;
+  padding: 4px;
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+}
+
+.next-preview-cell {
+  --cell-color: #22c55e;
+  background-color: rgba(15, 23, 42, 0.95);
+  border-radius: 2px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 1);
+}
+
+.next-preview-cell--filled {
+  background-color: var(--cell-color);
+  box-shadow: 0 0 4px var(--cell-color), 0 0 8px var(--cell-color);
+}
+
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -384,6 +465,7 @@ body::before {
 
 .control-btn {
   min-width: 90px;
+  touch-action: manipulation;
 }
 
 .game-over-overlay {
@@ -420,13 +502,75 @@ body::before {
 }
 
 .game-over-score {
-  margin: 0 0 1.75rem 0;
+  margin: 0 0 0.5rem 0;
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 1.05rem;
   color: #bbf7d0;
   text-shadow:
     0 0 4px rgba(16, 185, 129, 0.9),
     0 0 10px rgba(22, 163, 74, 0.7);
+}
+
+.game-over-high-score {
+  margin: 0 0 1rem 0;
+  font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  color: rgba(34, 211, 238, 0.9);
+}
+
+.leaderboard-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+  text-align: left;
+  font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.95rem;
+  color: #a7f3d0;
+}
+
+.leaderboard-list--compact {
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+}
+
+.leaderboard-item {
+  padding: 0.2rem 0;
+}
+
+.leaderboard-item--compact {
+  padding: 0.1rem 0;
+}
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.9), rgba(0, 0, 0, 0.95));
+  z-index: 3;
+}
+
+.pause-content {
+  text-align: center;
+  padding: 2rem 2.4rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  background: radial-gradient(circle at top, rgba(34, 211, 238, 0.08), rgba(15, 23, 42, 0.98));
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.9),
+    0 0 22px rgba(34, 211, 238, 0.4);
+}
+
+.pause-text {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(34, 211, 238, 0.95);
+  text-shadow:
+    0 0 8px rgba(34, 211, 238, 0.8),
+    0 0 16px rgba(34, 211, 238, 0.5);
 }
 
 /* Универсальное скрытие экранов и оверлеев */

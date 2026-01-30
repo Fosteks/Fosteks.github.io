@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Тетрис</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -17,6 +17,11 @@
     <div class="landing-content">
       <h1 class="title">Тетрис</h1>
       <button id="start-button" class="btn btn-primary">Начать</button>
+      <p id="landing-high-score" class="landing-high-score">Рекорд: 0</p>
+      <div class="leaderboard-wrap">
+        <h2 class="leaderboard-title">Лучшие результаты</h2>
+        <ol id="leaderboard-list" class="leaderboard-list"></ol>
+      </div>
     </div>
   </div>
 
@@ -32,6 +37,10 @@
       <div id="game-board-wrapper" class="game-board-wrapper">
         <div id="game-board" class="game-board" aria-label="Игровое поле"></div>
       </div>
+      <div class="next-preview-wrap">
+        <span class="next-preview-label">Следующая</span>
+        <div id="next-preview" class="next-preview" aria-hidden="true"></div>
+      </div>
       <div class="controls">
         <button id="btn-left" class="btn control-btn">Влево</button>
         <button id="btn-rotate" class="btn control-btn">Повернуть</button>
@@ -42,7 +51,15 @@
       <div class="game-over-content">
         <p class="game-over-text">Игра окончена</p>
         <p id="final-score" class="game-over-score">Ваши очки: 0</p>
+        <p id="game-over-high-score" class="game-over-high-score">Рекорд: 0</p>
+        <ol id="game-over-leaderboard" class="leaderboard-list leaderboard-list--compact"></ol>
         <button id="restart-button" class="btn btn-secondary">Сыграть ещё раз</button>
+      </div>
+    </div>
+    <div id="pause-overlay" class="pause-overlay screen--hidden">
+      <div class="pause-content">
+        <p class="pause-text">Пауза</p>
+        <button id="pause-resume-btn" class="btn btn-secondary">Продолжить</button>
       </div>
     </div>
   </div>

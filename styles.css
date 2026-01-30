@@ -195,12 +195,14 @@ body::before {
 
 .btn {
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(148, 163, 184, 0.7);
   border-radius: 999px;
   padding: 0.8rem 2.4rem;
   font-size: 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
   background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.24), rgba(15, 23, 42, 0.9));
   color: #e5e7eb;
   backdrop-filter: blur(8px);
@@ -235,6 +237,12 @@ body::before {
 
 .btn-secondary {
   border-color: rgba(74, 222, 128, 0.7);
+}
+
+/* Текст в кнопке: letter-spacing; сдвиг вправо компенсирует «хвост» справа от букв */
+.btn-text {
+  letter-spacing: 0.12em;
+  margin-left: 0.6em;
 }
 
 /* Игровой экран */
@@ -456,15 +464,87 @@ body::before {
   box-shadow: 0 0 4px var(--cell-color), 0 0 8px var(--cell-color);
 }
 
+/* Пауза и Сброс слева и справа от «Следующая» */
+.preview-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  width: min(320px, 80vw);
+}
+
+.preview-row .next-preview-wrap {
+  flex-shrink: 0;
+}
+
+.control-btn--utility {
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+/* Верхний ряд: Сброс | След | Пауза. Нижний: Влево | ↺↻ (стек) | Вправо */
 .controls {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.controls-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: min(320px, 80vw);
+  gap: 0.5rem;
+}
+
+.controls-row--top .control-btn {
+  flex: 1;
+  min-width: 0;
+}
+
+.controls-row--top .next-preview-wrap {
+  flex-shrink: 0;
+}
+
+.controls-row--bottom .control-btn:not(.control-btn--rotate) {
+  flex: 1;
+  min-width: 78px;
+  padding-left: calc(2.4rem - 2px);
+  padding-right: calc(2.4rem - 2px);
+}
+
+.controls-rotate-stack {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.control-btn--rotate {
+  min-width: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.controls-below {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: min(320px, 80vw);
+  gap: 0.5rem;
+}
+
+.controls-below .control-btn:not(.control-btn--rotate) {
+  min-width: 82px;
 }
 
 .control-btn {
-  min-width: 90px;
   touch-action: manipulation;
 }
 
@@ -580,13 +660,35 @@ body::before {
 
 /* Адаптивность */
 @media (max-width: 600px) {
-  .controls {
-    gap: 0.5rem;
+  .game-main {
+    gap: 1rem;
   }
 
-  .control-btn {
-    min-width: 80px;
-    padding-inline: 1.2rem;
+  .preview-row {
+    width: min(320px, 80vw);
+    gap: 0.6rem;
+  }
+
+  .control-btn--utility {
+    min-width: 72px;
+    padding-inline: 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .controls-row {
+    width: min(320px, 80vw);
+  }
+
+  .controls-row--bottom .control-btn:not(.control-btn--rotate) {
+    min-width: 68px;
+    padding-inline: calc(0.65rem - 2px);
+    font-size: 0.9rem;
+  }
+
+  .control-btn--rotate {
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.2rem;
   }
 }
 

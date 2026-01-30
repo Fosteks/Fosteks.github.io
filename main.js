@@ -183,7 +183,10 @@ let restartButton;
 let gameOverOverlay;
 let btnLeft;
 let btnRight;
-let btnRotate;
+let btnRotateLeft;
+let btnRotateRight;
+let btnPause;
+let btnDrop;
 let gameBoardWrapper;
 let nextPreviewElement;
 let landingHighScoreElement;
@@ -214,7 +217,10 @@ function cacheDom() {
   gameOverOverlay = document.getElementById("game-over-overlay");
   btnLeft = document.getElementById("btn-left");
   btnRight = document.getElementById("btn-right");
-  btnRotate = document.getElementById("btn-rotate");
+  btnRotateLeft = document.getElementById("btn-rotate-left");
+  btnRotateRight = document.getElementById("btn-rotate-right");
+  btnPause = document.getElementById("btn-pause");
+  btnDrop = document.getElementById("btn-drop");
   gameBoardWrapper = document.getElementById("game-board-wrapper");
   nextPreviewElement = document.getElementById("next-preview");
   landingHighScoreElement = document.getElementById("landing-high-score");
@@ -340,12 +346,18 @@ function attachEventListeners() {
 
   btnLeft.addEventListener("click", () => handleMove(-1, 0));
   btnRight.addEventListener("click", () => handleMove(1, 0));
-  btnRotate.addEventListener("click", handleRotate);
+  if (btnRotateLeft) btnRotateLeft.addEventListener("click", handleRotateLeft);
+  if (btnRotateRight) btnRotateRight.addEventListener("click", handleRotateRight);
+  if (btnPause) btnPause.addEventListener("click", () => { if (!isGameOver && currentPiece) togglePause(); });
+  if (btnDrop) btnDrop.addEventListener("click", () => { if (!isGameOver && currentPiece) handleHardDrop(); });
   if (pauseResumeBtn) pauseResumeBtn.addEventListener("click", () => { if (isPaused) togglePause(); });
 
-  // Ускорение падения при клике/удержании по полю (но не по кнопкам)
+  // Ускорение падения при клике/удержании по полю (мышь и касание)
   gameBoardElement.addEventListener("mousedown", handleBoardMouseDown);
   document.addEventListener("mouseup", handleBoardMouseUp);
+  gameBoardElement.addEventListener("touchstart", handleBoardTouchStart, { passive: false });
+  document.addEventListener("touchend", handleBoardTouchEnd);
+  document.addEventListener("touchcancel", handleBoardTouchEnd);
 
   document.addEventListener("keydown", handleKeyDown);
 }
@@ -362,9 +374,39 @@ function handleBoardMouseUp() {
   setSpeedFast(false);
 }
 
+function handleBoardTouchStart(event) {
+  if (event.target.closest(".controls")) return;
+  event.preventDefault();
+  if (isGameOver || !currentPiece || isPaused || isHardDropping) return;
+  setSpeedFast(true);
+}
+
+function handleBoardTouchEnd() {
+  if (!currentPiece) return;
+  setSpeedFast(false);
+}
+
 function handleKeyDown(event) {
   const key = event.code;
-  if (key === "Escape" || key === "KeyP") {
+  if (key === "Enter") {
+    if (landingScreen && !landingScreen.classList.contains("screen--hidden")) {
+      event.preventDefault();
+      startGame();
+      return;
+    }
+    if (gameOverOverlay && !gameOverOverlay.classList.contains("screen--hidden")) {
+      event.preventDefault();
+      restartGame();
+      return;
+    }
+    if (isPaused && pauseOverlay && !pauseOverlay.classList.contains("screen--hidden")) {
+      event.preventDefault();
+      togglePause();
+      return;
+    }
+    return;
+  }
+  if (key === "KeyP") {
     if (!isGameOver && currentPiece) {
       event.preventDefault();
       togglePause();
@@ -386,10 +428,10 @@ function handleKeyDown(event) {
     handleMove(1, 0);
   } else if (key === "ArrowDown") {
     event.preventDefault();
-    handleMove(0, 1);
+    handleRotateLeft();
   } else if (key === "ArrowUp") {
     event.preventDefault();
-    handleRotate();
+    handleRotateRight();
   }
 }
 
@@ -562,7 +604,18 @@ function canMove(dx, dy) {
   return canPlace(shape, currentRow + dy, currentCol + dx);
 }
 
-function handleRotate() {
+function handleRotateLeft() {
+  if (!currentPiece || isGameOver || isPaused || isHardDropping) return;
+  const len = currentPiece.shapes.length;
+  const nextRotation = (currentRotation - 1 + len) % len;
+  const nextShape = currentPiece.shapes[nextRotation];
+  if (canPlace(nextShape, currentRow, currentCol)) {
+    currentRotation = nextRotation;
+    render();
+  }
+}
+
+function handleRotateRight() {
   if (!currentPiece || isGameOver || isPaused || isHardDropping) return;
   const nextRotation = (currentRotation + 1) % currentPiece.shapes.length;
   const nextShape = currentPiece.shapes[nextRotation];
@@ -655,7 +708,6 @@ function clearLines(onCleared) {
     return;
   }
 
-  vibrate([30]);
   isClearingLines = true;
   animateLineClear(fullRows, () => {
     const linesCleared = fullRows.length;
@@ -804,18 +856,11 @@ function setSpeedFast(enable) {
   }
 }
 
-function vibrate(pattern) {
-  if (typeof navigator.vibrate === "function") {
-    navigator.vibrate(pattern);
-  }
-}
-
 function handleGameOver() {
   isGameOver = true;
   clearIntervalSafe();
   setHighScore(score);
   addToLeaderboard(score);
-  vibrate([100, 50, 100]);
   if (finalScoreElement) finalScoreElement.textContent = `Ваши очки: ${score}`;
   if (gameOverHighScoreElement) gameOverHighScoreElement.textContent = `Рекорд: ${getHighScore()}`;
   renderLeaderboard();

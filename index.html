@@ -16,7 +16,7 @@
     </div>
     <div class="landing-content">
       <h1 class="title">Тетрис</h1>
-      <button id="start-button" class="btn btn-primary">Начать</button>
+      <button id="start-button" class="btn btn-primary"><span class="btn-text">Начать</span></button>
       <p id="landing-high-score" class="landing-high-score">Рекорд: 0</p>
       <div class="leaderboard-wrap">
         <h2 class="leaderboard-title">Лучшие результаты</h2>
@@ -37,14 +37,23 @@
       <div id="game-board-wrapper" class="game-board-wrapper">
         <div id="game-board" class="game-board" aria-label="Игровое поле"></div>
       </div>
-      <div class="next-preview-wrap">
-        <span class="next-preview-label">Следующая</span>
-        <div id="next-preview" class="next-preview" aria-hidden="true"></div>
-      </div>
       <div class="controls">
-        <button id="btn-left" class="btn control-btn">Влево</button>
-        <button id="btn-rotate" class="btn control-btn">Повернуть</button>
-        <button id="btn-right" class="btn control-btn">Вправо</button>
+        <div class="controls-row controls-row--top">
+          <button id="btn-drop" class="btn control-btn" type="button"><span class="btn-text">Сброс</span></button>
+          <div class="next-preview-wrap">
+            <span class="next-preview-label">Следующий</span>
+            <div id="next-preview" class="next-preview" aria-hidden="true"></div>
+          </div>
+          <button id="btn-pause" class="btn control-btn" type="button"><span class="btn-text">Пауза</span></button>
+        </div>
+        <div class="controls-row controls-row--bottom">
+          <button id="btn-left" class="btn control-btn" type="button"><span class="btn-text">Влево</span></button>
+          <div class="controls-rotate-stack">
+            <button id="btn-rotate-left" class="btn control-btn control-btn--rotate" type="button" aria-label="Повернуть влево">↺</button>
+            <button id="btn-rotate-right" class="btn control-btn control-btn--rotate" type="button" aria-label="Повернуть вправо">↻</button>
+          </div>
+          <button id="btn-right" class="btn control-btn" type="button"><span class="btn-text">Вправо</span></button>
+        </div>
       </div>
     </main>
     <div id="game-over-overlay" class="game-over-overlay screen--hidden">
@@ -53,13 +62,13 @@
         <p id="final-score" class="game-over-score">Ваши очки: 0</p>
         <p id="game-over-high-score" class="game-over-high-score">Рекорд: 0</p>
         <ol id="game-over-leaderboard" class="leaderboard-list leaderboard-list--compact"></ol>
-        <button id="restart-button" class="btn btn-secondary">Сыграть ещё раз</button>
+        <button id="restart-button" class="btn btn-secondary"><span class="btn-text">Сыграть ещё раз</span></button>
       </div>
     </div>
     <div id="pause-overlay" class="pause-overlay screen--hidden">
       <div class="pause-content">
         <p class="pause-text">Пауза</p>
-        <button id="pause-resume-btn" class="btn btn-secondary">Продолжить</button>
+        <button id="pause-resume-btn" class="btn btn-secondary"><span class="btn-text">Продолжить</span></button>
       </div>
     </div>
   </div>

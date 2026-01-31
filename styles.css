@@ -352,6 +352,19 @@ body::before {
   animation: boardGlow 0.5s ease-out;
 }
 
+/* На мобильных — упрощённое свечение без анимации, чтобы не лагало */
+@media (max-width: 600px), (max-height: 700px) {
+  .cell--filled {
+    box-shadow: 0 0 4px var(--cell-color);
+  }
+
+  .board--glow .cell--filled,
+  .board--pulse .cell--filled {
+    animation: none;
+    box-shadow: 0 0 4px var(--cell-color);
+  }
+}
+
 @keyframes boardGlow {
   0%, 100% {
     box-shadow: 0 0 8px var(--cell-color), 0 0 14px var(--cell-color);
@@ -449,7 +462,7 @@ body::before {
 }
 
 .next-preview-label {
-  font-size: 0.8rem;
+  font-size: clamp(0.65rem, 2vmin, 0.8rem);
   color: rgba(34, 211, 238, 0.8);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -499,12 +512,13 @@ body::before {
 }
 
 /* Верхний ряд: Сброс | След | Пауза. Нижний: Влево | ↺↻ (стек) | Вправо */
+/* Ширина блока кнопок = ширина поля, чтобы не выходить за него */
 .controls {
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .controls-row {
@@ -512,8 +526,8 @@ body::before {
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  width: min(280px, 82vw);
-  gap: 0.3rem;
+  width: min(360px, 88vw);
+  gap: 0.35rem;
 }
 
 .controls .control-btn {
@@ -702,38 +716,8 @@ body::before {
     font-size: 0.9rem;
   }
 
-  .controls {
-    gap: 0.35rem;
-  }
-
   .controls-row {
-    width: min(280px, 82vw);
-    gap: 0.25rem;
-  }
-
-  .controls .control-btn {
-    padding: 0.45rem 0.75rem;
-    font-size: 0.8125rem;
-  }
-
-  .controls-row--bottom .control-btn:not(.control-btn--rotate) {
-    min-width: 60px;
-    padding-inline: 0.5rem;
-    font-size: 0.8125rem;
-  }
-
-  .control-btn--rotate {
-    width: 2.25rem;
-    height: 2.25rem;
-    min-width: 2.25rem;
-    min-height: 2.25rem;
-    font-size: 1.1rem;
-  }
-
-  .next-preview {
-    width: 44px;
-    height: 44px;
-    padding: 2px;
+    width: min(360px, 88vw);
   }
 }
 

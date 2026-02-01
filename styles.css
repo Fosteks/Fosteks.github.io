@@ -243,6 +243,11 @@ body::before {
     box-shadow 0.12s ease-out,
     border-color 0.12s ease-out,
     background 0.12s ease-out;
+  /* Мобилки: не зумить при двойном тапе и не выделять текст */
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn:hover {
@@ -374,7 +379,7 @@ body::before {
   max-width: 100%;
   height: 100%;
   grid-template-rows: 1fr;
-  grid-template-columns: 200px auto 148px;
+  grid-template-columns: 230px auto 148px;
 }
 
 #game-screen.input-mode-computer .frame-menu {

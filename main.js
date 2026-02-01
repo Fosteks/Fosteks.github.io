@@ -895,29 +895,30 @@ function canMove(dx, dy) {
 }
 
 function handleHold() {
-  if (!currentPiece || isGameOver || isPaused || isHardDropping || isClearingLines || holdUsed) return;
-  holdUsed = true;
-  const shape = getCurrentShape();
+  if (!currentPiece || isGameOver || isPaused || isHardDropping || isClearingLines) return;
+  const placeRow = currentRow;
+  const placeCol = currentCol;
   const swapPiece = currentPiece;
   const swapColor = currentColor;
-  currentPiece = holdPiece;
-  currentColor = holdColor;
-  holdPiece = swapPiece;
-  holdColor = swapColor;
-  if (!currentPiece) {
+  let newPiece, newColor;
+  if (holdPiece) {
+    newPiece = holdPiece;
+    newColor = holdColor;
+  } else {
     if (nextQueue.length === 0) fillNextQueue();
     const entry = nextQueue.shift();
     fillNextQueue();
-    currentPiece = entry.piece;
-    currentColor = entry.color;
+    newPiece = entry.piece;
+    newColor = entry.color;
   }
+  if (!canPlace(newPiece.shapes[0], placeRow, placeCol)) return;
+  holdPiece = swapPiece;
+  holdColor = swapColor;
+  currentPiece = newPiece;
+  currentColor = newColor;
   currentRotation = 0;
-  currentRow = 0;
-  currentCol = Math.floor((COLS - 4) / 2);
-  if (!canPlace(currentPiece.shapes[0], currentRow, currentCol)) {
-    handleGameOver();
-    return;
-  }
+  currentRow = placeRow;
+  currentCol = placeCol;
   render();
   renderHold();
   renderNextPreview();

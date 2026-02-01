@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Тетрис</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%2302617'/><rect x='4' y='4' width='8' height='8' fill='%2322d3ee'/><rect x='16' y='4' width='8' height='8' fill='%2322d3ee'/></svg>" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -16,6 +17,10 @@
     </div>
     <div class="landing-content">
       <h1 class="title">Тетрис</h1>
+      <div class="mode-choice">
+        <button id="mode-computer" class="btn btn-mode" type="button" data-mode="computer"><span class="btn-text">Компьютер</span></button>
+        <button id="mode-phone" class="btn btn-mode btn-mode--active" type="button" data-mode="phone"><span class="btn-text">Телефон</span></button>
+      </div>
       <button id="start-button" class="btn btn-primary"><span class="btn-text">Начать</span></button>
       <p id="landing-high-score" class="landing-high-score">Рекорд: 0</p>
       <div class="leaderboard-wrap">
@@ -28,35 +33,51 @@
   <!-- Игровой экран -->
   <div id="game-screen" class="screen screen--hidden">
     <div class="background">
-      <div class="game-bg" aria-hidden="true"></div>
+      <div class="game-screen-grid" aria-hidden="true"></div>
     </div>
-    <header class="game-header">
-      <div id="score" class="score-display">Очки: 0</div>
-    </header>
-    <main class="game-main">
-      <div id="game-board-wrapper" class="game-board-wrapper">
-        <div id="game-board" class="game-board" aria-label="Игровое поле"></div>
-      </div>
-      <div class="controls">
-        <div class="controls-row controls-row--top">
-          <button id="btn-drop" class="btn control-btn" type="button"><span class="btn-text">Сброс</span></button>
-          <div class="next-preview-wrap">
-            <span class="next-preview-label">Следующий</span>
-            <div id="next-preview" class="next-preview" aria-hidden="true"></div>
+    <!-- Старое содержимое (скрыто, пока собираем новый каркас) -->
+    <div class="game-screen-legacy screen--hidden" aria-hidden="true">
+      <div class="game-frame">
+        <div class="game-top">
+          <div class="game-board-area">
+            <div id="score" class="score-display">Очки: 0</div>
           </div>
-          <button id="btn-pause" class="btn control-btn" type="button"><span class="btn-text">Пауза</span></button>
+          <aside class="game-sidebar">
+          </aside>
         </div>
-        <div class="controls-row controls-row--bottom">
-          <button id="btn-left" class="btn control-btn" type="button"><span class="btn-text">Влево</span></button>
-          <div class="controls-rotate-stack">
-            <button id="btn-rotate-right" class="btn control-btn control-btn--rotate" type="button" aria-label="Повернуть вправо">↻</button>
-            <button id="btn-rotate-left" class="btn control-btn control-btn--rotate" type="button" aria-label="Повернуть влево">↺</button>
+        <div class="game-controls">
+          <div class="controls controls--phone">
+            <div class="controls-pause-wrap">
+              <button id="btn-pause" class="btn control-btn control-btn--pause" type="button" aria-label="Пауза"><span class="btn-text">Пауза</span></button>
+            </div>
+            <div class="controls-row controls-row--1">
+              <button id="btn-drop" class="btn control-btn" type="button"><span class="btn-text">Падение</span></button>
+              <button id="btn-hold" class="btn control-btn" type="button"><span class="btn-text">Замена</span></button>
+            </div>
+            <div class="controls-row controls-row--2">
+              <button id="btn-left" class="btn control-btn" type="button"><span class="btn-text">Влево</span></button>
+              <button id="btn-rotate-right" class="btn control-btn control-btn--rotate" type="button" aria-label="Повернуть вправо">↻</button>
+              <button id="btn-right" class="btn control-btn" type="button"><span class="btn-text">Вправо</span></button>
+            </div>
+            <div class="controls-row controls-row--3">
+              <button id="btn-down" class="btn control-btn" type="button"><span class="btn-text">Вниз</span></button>
+            </div>
           </div>
-          <button id="btn-right" class="btn control-btn" type="button"><span class="btn-text">Вправо</span></button>
+          <div class="controls controls--computer screen--hidden">
+            <div class="controls-keys">
+              <p><kbd>←</kbd> <kbd>→</kbd> движение</p>
+              <p><kbd>↑</kbd> поворот</p>
+              <p><kbd>↓</kbd> вниз</p>
+              <p><kbd>Пробел</kbd> падение</p>
+              <p><kbd>Ctrl</kbd> замена</p>
+              <p><kbd>P</kbd> пауза</p>
+            </div>
+          </div>
         </div>
       </div>
-    </main>
-    <div id="game-over-overlay" class="game-over-overlay screen--hidden">
+    </div>
+    <!-- Оверлеи поверх главного фрейма -->
+    <div id="game-over-overlay" class="game-over-overlay screen--hidden" aria-hidden="true">
       <div class="game-over-content">
         <p class="game-over-text">Игра окончена</p>
         <p id="final-score" class="game-over-score">Ваши очки: 0</p>
@@ -65,10 +86,58 @@
         <button id="restart-button" class="btn btn-secondary"><span class="btn-text">Сыграть ещё раз</span></button>
       </div>
     </div>
-    <div id="pause-overlay" class="pause-overlay screen--hidden">
+    <div id="pause-overlay" class="pause-overlay screen--hidden" aria-hidden="true">
       <div class="pause-content">
         <p class="pause-text">Пауза</p>
         <button id="pause-resume-btn" class="btn btn-secondary"><span class="btn-text">Продолжить</span></button>
+      </div>
+    </div>
+    <!-- Главный фрейм (каркас) -->
+    <div class="main-frame" tabindex="-1" id="main-frame">
+      <div class="frame-gamefield" aria-label="Игровое поле">
+        <div class="twinkle-layer" id="twinkle-gamefield" aria-hidden="true"></div>
+        <div id="score-main" class="score-on-field">Очки: 0</div>
+        <button id="btn-pause-gamefield" class="btn gamefield-pause-btn control-btn--icon" type="button" aria-label="Пауза"><span class="control-icon" aria-hidden="true">⏸</span></button>
+        <div class="gamefield-board-wrap">
+          <div id="game-board-wrapper" class="game-board-wrapper game-board-wrapper--visible">
+            <div id="game-board" class="game-board" aria-label="Игровое поле"></div>
+          </div>
+        </div>
+      </div>
+      <div class="frame-sidebar" aria-label="Замена и следующие">
+        <div class="twinkle-layer" id="twinkle-sidebar" aria-hidden="true"></div>
+        <button id="btn-pause-main" class="btn sidebar-pause-btn control-btn--icon" type="button" aria-label="Пауза"><span class="control-icon" aria-hidden="true">⏸</span></button>
+        <div class="sidebar-block sidebar-block--hold">
+          <span class="sidebar-block-label">Замена</span>
+          <div id="hold-preview" class="hold-preview hold-preview--main" aria-hidden="true"></div>
+        </div>
+        <div class="sidebar-block sidebar-block--next">
+          <span class="sidebar-block-label">Следующие</span>
+          <div id="next-preview" class="next-preview next-preview--main" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="frame-menu" aria-label="Меню управления">
+        <div class="twinkle-layer" id="twinkle-menu" aria-hidden="true"></div>
+        <div class="menu-controls menu-controls--phone">
+          <div class="menu-controls-row">
+            <button type="button" class="btn control-btn control-btn--icon" data-action="left" aria-label="Влево"><span class="control-icon" aria-hidden="true">←</span></button>
+            <button type="button" class="btn control-btn control-btn--rotate control-btn--icon" data-action="rotate" aria-label="Поворот"><span class="control-icon" aria-hidden="true">↻</span></button>
+            <button type="button" class="btn control-btn control-btn--icon" data-action="right" aria-label="Вправо"><span class="control-icon" aria-hidden="true">→</span></button>
+          </div>
+          <div class="menu-controls-row">
+            <button type="button" class="btn control-btn control-btn--icon" data-action="hold" aria-label="Замена"><span class="control-icon" aria-hidden="true">⇄</span></button>
+            <button type="button" class="btn control-btn control-btn--icon" data-action="down" aria-label="Вниз"><span class="control-icon" aria-hidden="true">↓</span></button>
+            <button type="button" class="btn control-btn control-btn--icon" data-action="drop" aria-label="Сброс"><span class="control-icon" aria-hidden="true">⇩</span></button>
+          </div>
+        </div>
+        <div class="menu-controls menu-controls--computer">
+          <div class="menu-controls-keys">
+            <p><kbd>←</kbd> <kbd>→</kbd> <kbd>↓</kbd> движение</p>
+            <p><kbd>Пробел</kbd> падение</p>
+            <p><kbd>↑</kbd> поворот</p>
+            <p><kbd>Ctrl</kbd> замена · <kbd>P</kbd> пауза</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>

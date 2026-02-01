@@ -122,23 +122,27 @@ body::before {
   to { background-position: 30px 30px; }
 }
 
-.game-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    linear-gradient(rgba(34, 211, 238, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px);
-  background-size: 44px 44px;
-  opacity: 1;
-}
-
 /* Панель вокруг формы — нео-футуристический хакерский стиль, мягкий для глаз */
 .landing-high-score {
   margin: 1rem 0 0.5rem 0;
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: rgba(34, 211, 238, 0.9);
+}
+
+@media (max-width: 380px) {
+  .landing-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .mode-choice {
+    gap: 0.5rem;
+  }
+
+  .btn-mode {
+    padding: 0.45rem 0.85rem;
+    font-size: 0.8rem;
+  }
 }
 
 .leaderboard-wrap {
@@ -148,7 +152,7 @@ body::before {
 
 .leaderboard-title {
   margin: 0 0 0.5rem 0;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(34, 211, 238, 0.7);
@@ -179,6 +183,10 @@ body::before {
     0 0 60px rgba(168, 85, 247, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
+  max-width: min(calc(100vw - 1rem), 420px);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .title {
@@ -191,6 +199,27 @@ body::before {
     0 0 8px rgba(34, 211, 238, 0.8),
     0 0 18px rgba(14, 165, 233, 0.6),
     0 0 32px rgba(168, 85, 247, 0.5);
+}
+
+.mode-choice {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.btn-mode {
+  padding: 0.5rem 1.25rem;
+  font-size: 1rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.btn-mode--active {
+  border-color: rgba(34, 211, 238, 0.9);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
 }
 
 .btn {
@@ -231,6 +260,12 @@ body::before {
     0 0 12px rgba(34, 197, 94, 0.8);
 }
 
+.btn:focus-visible,
+.control-btn:focus-visible {
+  outline: 2px solid rgba(34, 211, 238, 0.9);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   border-color: rgba(56, 189, 248, 0.7);
 }
@@ -246,21 +281,548 @@ body::before {
 }
 
 /* Игровой экран */
-.game-header {
+#game-screen {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+#game-screen .background {
+}
+
+/* Фон игровой страницы — одна статичная сетка (как на стартовой, без анимации) */
+.game-screen-grid {
   position: absolute;
-  top: 1.2rem;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(34, 211, 238, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.07) 1px, transparent 1px);
+  background-size: 40px 40px;
+  background-position: 0 0;
+}
+
+/* Скрытое старое содержимое игровой страницы */
+.game-screen-legacy {
+  display: none !important;
+}
+
+/* Мелькающие звёздочки — только в пустотах, нео-футуристический стиль */
+.twinkle-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Звёздочка — символ ★, размер задаётся через font-size в JS */
+.twinkle-star {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -50%);
+  font-size: 1em;
+  line-height: 1;
+  color: rgba(34, 211, 238, 0.95);
+  text-shadow: 0 0 6px rgba(34, 211, 238, 0.7), 0 0 12px rgba(34, 211, 238, 0.4);
+  pointer-events: none;
+  animation: twinkle-star-cycle 5s ease-in-out forwards;
+}
+
+@keyframes twinkle-star-cycle {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  12% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  28% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+  42% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+  56% { opacity: 0.15; transform: translate(-50%, -50%) scale(1); }
+  70% { opacity: 0.35; transform: translate(-50%, -50%) scale(1); }
+  85% { opacity: 0.12; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+/* Главный фрейм — каркас: макс. высота, ширина = половина высоты (телефон: меню снизу) */
+.main-frame {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  max-height: 100%;
+  width: auto;
+  aspect-ratio: 1 / 2;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: 3fr 1fr;
+  grid-template-columns: 2fr 1fr;
+  gap: 6px;
+  padding: 0;
+}
+
+#main-frame:focus {
+  outline: none;
+}
+
+/* Компьютер: menu слева (прижат к gamefield), gamefield 1:2 по центру, sidebar справа; блок не растягивается по ширине */
+#game-screen.input-mode-computer .main-frame {
+  aspect-ratio: auto;
+  width: max-content;
+  max-width: 100%;
+  height: 100%;
+  grid-template-rows: 1fr;
+  grid-template-columns: 200px auto 148px;
+}
+
+#game-screen.input-mode-computer .frame-menu {
+  grid-column: 1;
+  grid-row: 1;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  align-self: center;
+  width: 100%;
+  min-width: 0;
+  padding: 18px 16px 24px 16px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+#game-screen.input-mode-computer .frame-gamefield {
+  grid-column: 2;
+  grid-row: 1;
+  height: 100%;
+  aspect-ratio: 1 / 2;
+  width: auto;
+  min-width: 0;
+}
+
+#game-screen.input-mode-computer .frame-sidebar {
+  grid-column: 3;
+  grid-row: 1;
+  width: 148px;
+  min-width: 148px;
+  padding-left: 14px;
+  padding-right: 14px;
+  box-sizing: border-box;
+}
+
+/* Небольшой отступ от границ sidebar для превью с 4 клетками (горизонтальная/вертикальная палка) */
+.frame-sidebar .hold-preview--main.preview-grid-4x3,
+.frame-sidebar .next-preview--main .next-preview-item.preview-grid-4x3,
+.frame-sidebar .hold-preview--main.preview-grid-3x4,
+.frame-sidebar .next-preview--main .next-preview-item.preview-grid-3x4 {
+  margin-left: 4px;
+  margin-right: 4px;
+}
+
+/* Поле: слева сверху, 3/4 высоты, 2/3 ширины; красивое свечение от поля */
+.main-frame .frame-gamefield {
+  grid-column: 1;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow:
+    0 0 8px rgba(34, 211, 238, 0.25),
+    0 0 20px rgba(34, 211, 238, 0.2),
+    0 0 40px rgba(34, 211, 238, 0.15),
+    0 0 64px rgba(34, 211, 238, 0.1),
+    0 0 96px rgba(34, 211, 238, 0.06),
+    inset 0 0 24px rgba(34, 211, 238, 0.04);
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Обёртка доски — на весь фрейм (включая под бордер), под очками по слоям */
+.frame-gamefield .gamefield-board-wrap {
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  bottom: -1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  z-index: 0;
+}
+
+.frame-gamefield .gamefield-board-wrap .game-board-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Доска с соотношением 1:2 — клетки остаются квадратными (10×20) */
+.frame-gamefield .game-board-wrapper .game-board {
+  aspect-ratio: 1 / 2;
+  max-width: 100%;
+  max-height: 100%;
+  height: 100%;
+  width: auto;
+  min-width: 0;
+}
+
+/* Очки поверх игрового поля: сверху по центру, с небольшим отступом */
+.frame-gamefield .score-on-field {
+  position: absolute;
+  z-index: 2;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
+  margin: 0;
+  font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(52, 211, 153, 0.7);
+  background: radial-gradient(circle at top, rgba(15, 118, 110, 0.4), rgba(2, 6, 23, 0.9));
+  color: #a7f3d0;
+  font-size: clamp(0.85rem, 2.2vmin, 1.05rem);
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.9), 0 0 14px rgba(22, 163, 74, 0.7);
+  box-shadow: 0 0 0 1px rgba(6, 78, 59, 0.9), 0 0 18px rgba(16, 185, 129, 0.4);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Кнопка паузы на игровом поле — только для мобилок, левый верхний угол */
+.frame-gamefield .gamefield-pause-btn {
+  display: none;
+  position: absolute;
   z-index: 2;
+  top: 6px;
+  left: 6px;
+  padding: 0.35rem 0.6rem;
+  font-size: clamp(0.65rem, 1.6vmin, 0.8rem);
+}
+
+.frame-gamefield .gamefield-pause-btn .control-icon {
+  display: block;
+  font-size: 1.1em;
+  line-height: 1;
+  color: rgba(34, 211, 238, 0.95);
+}
+
+#game-screen.input-mode-phone .frame-gamefield .gamefield-pause-btn {
+  display: inline-flex;
+}
+
+#game-screen.input-mode-phone .frame-sidebar .sidebar-pause-btn {
+  display: none !important;
+}
+
+/* Сайдбар: сверху справа, 3/4 высоты, 1/3 ширины; Замена и Следующие по центру по высоте */
+.main-frame .frame-sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 36px 6px 8px 6px;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.12);
+  min-height: 0;
+}
+
+/* Кнопка паузы в сайдбаре — сверху справа */
+.frame-sidebar .sidebar-pause-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 0.4rem 0.75rem;
+  font-size: clamp(0.65rem, 1.6vmin, 0.8rem);
+}
+
+/* Блок в сайдбаре: фрейм в клетку */
+.frame-sidebar .sidebar-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.frame-sidebar .sidebar-block--hold {
+  order: 1;
+}
+
+.frame-sidebar .sidebar-block--next {
+  order: 2;
+}
+
+.frame-sidebar .sidebar-block-label {
+  font-size: clamp(0.7rem, 1.8vmin, 0.9rem);
+  color: rgba(34, 211, 238, 0.85);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Замена / Следующие: размер клетки = игровое поле; сетка задаётся классом .preview-grid-3x3 / .preview-grid-4x3 / .preview-grid-3x4 */
+.frame-sidebar .hold-preview--main,
+.frame-sidebar .next-preview--main .next-preview-item {
+  display: grid;
+  border-radius: 0.35rem;
+  background: rgba(2, 6, 23, 0.85);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+}
+
+/* По умолчанию 3×3 (если класс сетки не задан) */
+.frame-sidebar .hold-preview--main:not([class*="preview-grid-"]),
+.frame-sidebar .next-preview--main .next-preview-item:not([class*="preview-grid-"]) {
+  grid-template-columns: repeat(3, var(--board-cell-px, 12px));
+  grid-template-rows: repeat(3, var(--board-cell-px, 12px));
+  width: calc(3 * var(--board-cell-px, 12px));
+  height: calc(3 * var(--board-cell-px, 12px));
+}
+
+.frame-sidebar .hold-preview--main:not([class*="preview-grid-"]) .preview-cell:nth-child(n+10),
+.frame-sidebar .next-preview--main .next-preview-item:not([class*="preview-grid-"]) .preview-cell:nth-child(n+10) {
+  display: none;
+}
+
+.frame-sidebar .hold-preview--main.preview-grid-3x3,
+.frame-sidebar .next-preview--main .next-preview-item.preview-grid-3x3 {
+  grid-template-columns: repeat(3, var(--board-cell-px, 12px));
+  grid-template-rows: repeat(3, var(--board-cell-px, 12px));
+  width: calc(3 * var(--board-cell-px, 12px));
+  height: calc(3 * var(--board-cell-px, 12px));
+}
+
+.frame-sidebar .hold-preview--main.preview-grid-3x3 .preview-cell:nth-child(n+10),
+.frame-sidebar .next-preview--main .next-preview-item.preview-grid-3x3 .preview-cell:nth-child(n+10) {
+  display: none;
+}
+
+.frame-sidebar .hold-preview--main.preview-grid-4x3,
+.frame-sidebar .next-preview--main .next-preview-item.preview-grid-4x3 {
+  grid-template-columns: repeat(4, var(--board-cell-px, 12px));
+  grid-template-rows: repeat(3, var(--board-cell-px, 12px));
+  width: calc(4 * var(--board-cell-px, 12px));
+  height: calc(3 * var(--board-cell-px, 12px));
+}
+
+.frame-sidebar .hold-preview--main.preview-grid-3x4,
+.frame-sidebar .next-preview--main .next-preview-item.preview-grid-3x4 {
+  grid-template-columns: repeat(3, var(--board-cell-px, 12px));
+  grid-template-rows: repeat(4, var(--board-cell-px, 12px));
+  width: calc(3 * var(--board-cell-px, 12px));
+  height: calc(4 * var(--board-cell-px, 12px));
+}
+
+.frame-sidebar .next-preview--main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Меню: снизу, 1/4 высоты, на всю ширину */
+.main-frame .frame-menu {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.5);
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.12);
+  min-height: 0;
+  padding: 6px;
+}
+
+/* Меню управления — телефон: 2 строки кнопок, паддинг между кнопками, чуть меньше размер */
+.frame-menu .menu-controls--phone {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.frame-menu .menu-controls-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.frame-menu .menu-controls-row .control-btn {
+  flex: 1;
+  min-width: 0;
+  padding: 0.4rem 0.4rem;
+  font-size: clamp(0.75rem, 2vmin, 0.9rem);
+}
+
+.frame-menu .menu-controls-row .control-btn--icon {
+  padding: 0.4rem;
+}
+
+.frame-menu .menu-controls-row .control-btn--icon .control-icon {
+  display: block;
+  font-size: 1.6em;
+  line-height: 1;
+  font-weight: 600;
+  color: rgba(34, 211, 238, 0.95);
+  text-shadow: 0 0 6px rgba(34, 211, 238, 0.6);
+}
+
+.frame-menu .menu-controls-row .control-btn--rotate {
+  font-size: 1.1em;
+}
+
+.frame-menu .menu-controls-row .control-btn--rotate .control-icon {
+  font-size: 1.6em;
+}
+
+.frame-sidebar .sidebar-pause-btn.control-btn--icon .control-icon {
+  display: block;
+  font-size: 1.1em;
+  line-height: 1;
+  color: rgba(34, 211, 238, 0.95);
+}
+
+/* Меню управления — компьютер: подсказки по клавишам (скрыто по умолчанию) */
+.frame-menu .menu-controls--computer {
+  display: none !important;
+}
+
+#game-screen.input-mode-computer .frame-menu .menu-controls--phone {
+  display: none !important;
+}
+
+#game-screen.input-mode-computer .frame-menu .menu-controls--computer {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+#game-screen.input-mode-computer .frame-menu .menu-controls-keys {
+  font-size: clamp(0.8rem, 1.85vmin, 1rem);
+}
+
+#game-screen.input-mode-computer .frame-menu .menu-controls-keys p {
+  margin: 0 0 0.8rem 0;
+  white-space: nowrap;
+}
+
+#game-screen.input-mode-computer .frame-menu .menu-controls-keys p:last-child {
+  margin-bottom: 0;
+}
+
+.frame-menu .menu-controls-keys {
+  font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: clamp(0.95rem, 2.5vmin, 1.2rem);
+  color: rgba(34, 211, 238, 0.9);
+}
+
+.frame-menu .menu-controls-keys p {
+  margin: 0 0 0.65rem 0;
+}
+
+.frame-menu .menu-controls-keys p:last-child {
+  margin-bottom: 0;
+}
+
+.frame-menu .menu-controls-keys kbd {
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+  font-size: 1.1em;
+}
+
+.game-frame {
+}
+
+.game-top {
+}
+
+.game-board-area {
+}
+
+.game-board-area .game-board-wrapper {
+}
+
+.game-board-area .score-display {
+}
+
+.game-board-wrapper {
+  border-radius: 0.5rem;
+  opacity: 0;
+}
+
+.frame-gamefield .game-board-wrapper {
+  opacity: 1;
+}
+
+.game-board-wrapper--visible {
+  opacity: 1;
+}
+
+.game-board {
+  position: relative;
+  --board-cell-px: 12px;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(20, 1fr);
+  background: radial-gradient(circle at top, #020617, #020617 40%, #000 100%);
+  border-radius: 0.4rem;
+  box-shadow:
+    0 0 0 1px rgba(30, 64, 175, 0.6),
+    0 0 10px rgba(37, 99, 235, 0.4),
+    0 0 20px rgba(59, 130, 246, 0.25);
+}
+
+
+.board-piece-layer {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  grid-template-rows: repeat(20, 1fr);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.piece-layer-cell {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.piece-layer-cell--filled {
+  background-color: var(--cell-color);
+  box-shadow:
+    0 0 8px var(--cell-color),
+    0 0 14px var(--cell-color);
+}
+
+.game-sidebar {
 }
 
 .score-display {
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  padding: 0.4rem 1rem;
-  border-radius: 999px;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.5rem;
   border: 1px solid rgba(52, 211, 153, 0.7);
   background: radial-gradient(circle at top, rgba(15, 118, 110, 0.4), rgba(2, 6, 23, 0.9));
   color: #a7f3d0;
+  font-size: clamp(0.7rem, 1.8vmin, 0.9rem);
   text-shadow:
     0 0 6px rgba(16, 185, 129, 0.9),
     0 0 14px rgba(22, 163, 74, 0.7);
@@ -269,68 +831,67 @@ body::before {
     0 0 18px rgba(16, 185, 129, 0.4);
 }
 
-.game-main {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.4rem;
-}
-
-.game-board-wrapper {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  border-radius: 1rem;
-  background: radial-gradient(circle at top, rgba(37, 99, 235, 0.3), rgba(15, 23, 42, 0.95));
-  box-shadow:
-    0 0 0 1px rgba(30, 64, 175, 0.9),
-    0 0 26px rgba(37, 99, 235, 0.7),
-    0 0 52px rgba(59, 130, 246, 0.4);
-  backdrop-filter: blur(8px);
-  opacity: 0;
-  transform: scale(0.96);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
-
-.game-board-wrapper--visible {
-  opacity: 1;
-  transform: scale(1);
-}
-
-#game-screen {
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  overflow: hidden;
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-.game-board {
-  min-height: 0;
-  height: min(100%, 720px);
-  max-height: 100%;
-  width: auto;
-  aspect-ratio: 10 / 20;
-  max-width: min(360px, 88vw);
-  background: radial-gradient(circle at top, #020617, #020617 40%, #000 100%);
+.sidebar-frame {
   border-radius: 0.5rem;
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  grid-template-rows: repeat(20, 1fr);
-  gap: 1px;
-  padding: 3px;
-  cursor: pointer;
-  touch-action: manipulation;
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.sidebar-frame--hold {
+}
+
+.sidebar-frame--next {
+}
+
+.sidebar-frame-label {
+  font-size: clamp(0.6rem, 1.6vmin, 0.75rem);
+  color: rgba(34, 211, 238, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ПК: 4×3 (4 по длине, 3 по высоте); клетки = поле или меньше, не вылезать за родителя */
+.hold-preview {
+  border-radius: 3px;
+  background: rgba(2, 6, 23, 0.8);
+}
+
+.next-preview {
+}
+
+/* ПК: 4×3; клетки = поле или меньше, не вылезать за родителя */
+.next-preview-item {
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 0.4rem;
+  background: rgba(2, 6, 23, 0.6);
+}
+
+.game-controls {
+  border-top: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.game-controls .controls--phone {
+}
+
+.game-controls .controls--computer {
+}
+
+.controls-keys {
+  font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: clamp(0.9rem, 2.2vmin, 1.1rem);
+  color: rgba(34, 211, 238, 0.9);
+}
+
+.controls-keys p {
+  margin: 0;
+}
+
+.controls-keys kbd {
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  background: rgba(15, 23, 42, 0.9);
+  font-size: 1em;
 }
 
 .cell {
@@ -345,6 +906,15 @@ body::before {
   box-shadow:
     0 0 8px var(--cell-color),
     0 0 14px var(--cell-color);
+}
+
+.cell--shadow {
+  background-color: var(--cell-color);
+  opacity: 0.35;
+  box-shadow: none;
+}
+
+.cell--current {
 }
 
 .board--glow .cell--filled,
@@ -396,10 +966,8 @@ body::before {
 .score-popup {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 42%;
   transform: translate(-50%, -50%);
-  pointer-events: none;
-  z-index: 2;
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: 1.5rem;
   font-weight: bold;
@@ -408,6 +976,8 @@ body::before {
     0 0 8px rgba(16, 185, 129, 0.9),
     0 0 16px rgba(22, 163, 74, 0.7);
   animation: scorePopup 1s ease-out forwards;
+  pointer-events: none;
+  z-index: 3;
 }
 
 @keyframes scorePopup {
@@ -430,16 +1000,9 @@ body::before {
 }
 
 .spark {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 6px;
-  height: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 6px rgba(34, 211, 238, 0.8);
-  pointer-events: none;
-  z-index: 2;
   animation: sparkOut 0.8s ease-out forwards;
 }
 
@@ -454,239 +1017,173 @@ body::before {
   }
 }
 
-.next-preview-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.next-preview-label {
-  font-size: clamp(0.65rem, 2vmin, 0.8rem);
-  color: rgba(34, 211, 238, 0.8);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.next-preview {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, 1fr);
-  gap: 2px;
-  width: 48px;
-  height: 48px;
-  padding: 3px;
-  border-radius: 5px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(34, 211, 238, 0.25);
-}
-
-.next-preview-cell {
+.hold-preview .preview-cell,
+.next-preview-item .preview-cell {
   --cell-color: #22c55e;
   background-color: rgba(15, 23, 42, 0.95);
-  border-radius: 2px;
+  border-radius: 3px;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 1);
 }
 
-.next-preview-cell--filled {
+.hold-preview .preview-cell--filled,
+.next-preview-item .preview-cell--filled {
   background-color: var(--cell-color);
   box-shadow: 0 0 4px var(--cell-color), 0 0 8px var(--cell-color);
 }
 
-/* Пауза и Сброс слева и справа от «Следующая» */
-.preview-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  width: min(320px, 80vw);
-}
-
-.preview-row .next-preview-wrap {
-  flex-shrink: 0;
-}
-
-.control-btn--utility {
-  min-width: 80px;
-  flex-shrink: 0;
-}
-
-/* Верхний ряд: Сброс | След | Пауза. Нижний: Влево | ↺↻ (стек) | Вправо */
-/* Ширина блока кнопок = ширина поля, чтобы не выходить за него */
-.controls {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .controls-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  width: min(360px, 88vw);
-  gap: 0.35rem;
 }
 
 .controls .control-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  font-size: clamp(0.7rem, 2vmin, 0.875rem);
 }
 
-.controls-row--top .control-btn {
-  flex: 1;
-  min-width: 0;
-}
-
-.controls-row--top .next-preview-wrap {
-  flex-shrink: 0;
-}
-
-.controls-row--bottom .control-btn:not(.control-btn--rotate) {
-  flex: 1;
-  min-width: 66px;
-  padding-left: 0.6rem;
-  padding-right: 0.6rem;
-}
-
-.controls-rotate-stack {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
 
 .control-btn--rotate {
-  min-width: 0;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
   font-size: 1.2rem;
-  line-height: 1;
 }
 
-.controls-below {
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  width: min(320px, 80vw);
-  gap: 0.5rem;
+.controls-pause-wrap {
 }
 
-.controls-below .control-btn:not(.control-btn--rotate) {
-  min-width: 82px;
+.control-btn--pause {
+  font-size: clamp(0.7rem, 1.8vmin, 0.85rem);
 }
 
 .control-btn {
-  touch-action: manipulation;
 }
 
+.controls-row--1 .control-btn,
+.controls-row--2 .control-btn,
+.controls-row--3 .control-btn {
+}
+
+#game-screen.input-mode-computer .controls--phone {
+  display: none !important;
+}
+
+#game-screen.input-mode-computer .controls--computer {
+  display: flex !important;
+}
+
+#game-screen.input-mode-phone .controls--computer {
+  display: none !important;
+}
+
+/* Оверлей «Игра окончена» — поверх всего экрана */
 .game-over-overlay {
   position: absolute;
   inset: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.92), rgba(0, 0, 0, 0.96));
-  z-index: 3;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.95) 0%, rgba(0, 0, 0, 0.97) 100%);
+  backdrop-filter: blur(8px);
 }
 
 .game-over-content {
-  text-align: center;
-  padding: 2rem 2.4rem;
-  border-radius: 1.2rem;
-  border: 1px solid rgba(252, 165, 165, 0.6);
-  background: radial-gradient(circle at top, rgba(248, 113, 113, 0.2), rgba(15, 23, 42, 0.98));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 2rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(252, 165, 165, 0.5);
+  background: radial-gradient(ellipse at top, rgba(248, 113, 113, 0.12), rgba(15, 23, 42, 0.98));
   box-shadow:
-    0 0 0 1px rgba(127, 29, 29, 0.9),
-    0 0 22px rgba(248, 113, 113, 0.9),
-    0 0 48px rgba(248, 113, 113, 0.6);
+    0 0 0 1px rgba(127, 29, 29, 0.8),
+    0 0 24px rgba(248, 113, 113, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  max-width: min(320px, 100%);
+  text-align: center;
 }
 
 .game-over-text {
-  margin: 0 0 1.5rem 0;
-  font-size: 1.25rem;
-  letter-spacing: 0.12em;
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #fecaca;
-  text-shadow:
-    0 0 8px rgba(248, 113, 113, 0.9),
-    0 0 16px rgba(248, 113, 113, 0.8);
+  text-shadow: 0 0 10px rgba(248, 113, 113, 0.8);
 }
 
 .game-over-score {
-  margin: 0 0 0.5rem 0;
+  margin: 0;
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   color: #bbf7d0;
-  text-shadow:
-    0 0 4px rgba(16, 185, 129, 0.9),
-    0 0 10px rgba(22, 163, 74, 0.7);
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
 }
 
 .game-over-high-score {
-  margin: 0 0 1rem 0;
+  margin: 0;
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: rgba(34, 211, 238, 0.9);
 }
 
 .leaderboard-list {
   list-style: none;
-  padding: 0;
-  margin: 0 0 1.5rem 0;
-  text-align: left;
   font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   color: #a7f3d0;
 }
 
 .leaderboard-list--compact {
-  margin-bottom: 1rem;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  text-align: left;
 }
 
 .leaderboard-item {
-  padding: 0.2rem 0;
 }
 
 .leaderboard-item--compact {
-  padding: 0.1rem 0;
 }
 
+/* Оверлей паузы — поверх всего экрана */
 .pause-overlay {
   position: absolute;
   inset: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, rgba(15, 23, 42, 0.9), rgba(0, 0, 0, 0.95));
-  z-index: 3;
+  padding: 1rem;
+  box-sizing: border-box;
+  background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.92) 0%, rgba(0, 0, 0, 0.95) 100%);
+  backdrop-filter: blur(6px);
 }
 
 .pause-content {
-  text-align: center;
-  padding: 2rem 2.4rem;
-  border-radius: 1.2rem;
-  border: 1px solid rgba(34, 211, 238, 0.4);
-  background: radial-gradient(circle at top, rgba(34, 211, 238, 0.08), rgba(15, 23, 42, 0.98));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.75rem 2.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: radial-gradient(ellipse at top, rgba(34, 211, 238, 0.06), rgba(15, 23, 42, 0.98));
   box-shadow:
     0 0 0 1px rgba(15, 23, 42, 0.9),
-    0 0 22px rgba(34, 211, 238, 0.4);
+    0 0 28px rgba(34, 211, 238, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  text-align: center;
 }
 
 .pause-text {
-  margin: 0 0 1.5rem 0;
-  font-size: 1.25rem;
-  letter-spacing: 0.12em;
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(34, 211, 238, 0.95);
   text-shadow:
-    0 0 8px rgba(34, 211, 238, 0.8),
-    0 0 16px rgba(34, 211, 238, 0.5);
+    0 0 10px rgba(34, 211, 238, 0.7),
+    0 0 20px rgba(34, 211, 238, 0.4);
 }
 
 /* Универсальное скрытие экранов и оверлеев */
@@ -694,30 +1191,4 @@ body::before {
   display: none !important;
 }
 
-/* Адаптивность */
-@media (max-width: 600px) {
-  #game-screen {
-    height: 100vh;
-    height: 100dvh;
-  }
-
-  .game-main {
-    gap: 1rem;
-  }
-
-  .preview-row {
-    width: min(320px, 80vw);
-    gap: 0.6rem;
-  }
-
-  .control-btn--utility {
-    min-width: 72px;
-    padding-inline: 0.75rem;
-    font-size: 0.9rem;
-  }
-
-  .controls-row {
-    width: min(360px, 88vw);
-  }
-}
 

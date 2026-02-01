@@ -152,6 +152,9 @@ const TETROMINOES = {
   ]
 };
 
+// Режим ввода: 'computer' | 'phone'
+let inputMode = "phone";
+
 // Состояние игры
 let board = [];
 let currentPiece = null;
@@ -167,8 +170,10 @@ let dropElapsed = 0;
 let isClearingLines = false;
 let currentColor = "#22c55e";
 let piecesPlaced = 0;
-let nextPiece = null;
-let nextColor = "#22c55e";
+let nextQueue = [];
+let holdPiece = null;
+let holdColor = "#22c55e";
+let holdUsed = false;
 let isPaused = false;
 let isHardDropping = false;
 
@@ -183,52 +188,71 @@ let restartButton;
 let gameOverOverlay;
 let btnLeft;
 let btnRight;
-let btnRotateLeft;
 let btnRotateRight;
 let btnPause;
+let btnPauseGamefield;
 let btnDrop;
+let btnHold;
+let btnDown;
 let gameBoardWrapper;
 let nextPreviewElement;
+let holdPreviewElement;
 let landingHighScoreElement;
 let gameOverHighScoreElement;
 let leaderboardListElement;
 let gameOverLeaderboardElement;
 let pauseOverlay;
 let pauseResumeBtn;
+let modeComputerBtn;
+let modePhoneBtn;
+let gameBoardPieceLayer;
 
 // Инициализация
 document.addEventListener("DOMContentLoaded", () => {
   cacheDom();
   initGameBoardGrid();
   initNextPreviewGrid();
+  initHoldPreviewGrid();
   updateLandingHighScore();
   renderLeaderboard();
   attachEventListeners();
+  initTwinkleStars();
+  window.matchMedia("(min-width: 480px)").addEventListener("change", () => {
+    if (gameScreen && !gameScreen.classList.contains("screen--hidden")) {
+      renderHold();
+      renderNextPreview();
+    }
+  });
 });
 
 function cacheDom() {
   landingScreen = document.getElementById("landing-screen");
   gameScreen = document.getElementById("game-screen");
   gameBoardElement = document.getElementById("game-board");
-  scoreElement = document.getElementById("score");
+  scoreElement = document.getElementById("score-main") || document.getElementById("score");
   finalScoreElement = document.getElementById("final-score");
   startButton = document.getElementById("start-button");
   restartButton = document.getElementById("restart-button");
   gameOverOverlay = document.getElementById("game-over-overlay");
   btnLeft = document.getElementById("btn-left");
   btnRight = document.getElementById("btn-right");
-  btnRotateLeft = document.getElementById("btn-rotate-left");
   btnRotateRight = document.getElementById("btn-rotate-right");
-  btnPause = document.getElementById("btn-pause");
+  btnPause = document.getElementById("btn-pause-main") || document.getElementById("btn-pause");
+  btnPauseGamefield = document.getElementById("btn-pause-gamefield");
   btnDrop = document.getElementById("btn-drop");
+  btnHold = document.getElementById("btn-hold");
+  btnDown = document.getElementById("btn-down");
   gameBoardWrapper = document.getElementById("game-board-wrapper");
   nextPreviewElement = document.getElementById("next-preview");
+  holdPreviewElement = document.getElementById("hold-preview");
   landingHighScoreElement = document.getElementById("landing-high-score");
   gameOverHighScoreElement = document.getElementById("game-over-high-score");
   leaderboardListElement = document.getElementById("leaderboard-list");
   gameOverLeaderboardElement = document.getElementById("game-over-leaderboard");
   pauseOverlay = document.getElementById("pause-overlay");
   pauseResumeBtn = document.getElementById("pause-resume-btn");
+  modeComputerBtn = document.getElementById("mode-computer");
+  modePhoneBtn = document.getElementById("mode-phone");
 }
 
 function getHighScore() {
@@ -256,15 +280,14 @@ function getLeaderboard() {
 function addToLeaderboard(score) {
   const list = getLeaderboard();
   list.push({ score, date: Date.now() });
-  list.sort((a, b) => (b.score - a.score));
+  list.sort((a, b) => b.score - a.score);
   const seen = new Set();
-  const deduped = list.filter((e) => {
+  const unique = list.filter((e) => {
     if (seen.has(e.score)) return false;
     seen.add(e.score);
     return true;
   });
-  const trimmed = deduped.slice(0, LEADERBOARD_MAX);
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(trimmed));
+  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(unique.slice(0, LEADERBOARD_MAX)));
 }
 
 function renderLeaderboard() {
@@ -289,7 +312,7 @@ function updateLandingHighScore() {
   }
 }
 
-// Создание HTML-сетки клеток
+// Создание HTML-сетки клеток и слоя текущей фигуры поверх
 function initGameBoardGrid() {
   if (!gameBoardElement) return;
   gameBoardElement.innerHTML = "";
@@ -298,44 +321,260 @@ function initGameBoardGrid() {
     cell.className = "cell";
     gameBoardElement.appendChild(cell);
   }
+  const layer = document.createElement("div");
+  layer.className = "board-piece-layer";
+  layer.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < ROWS * COLS; i++) {
+    const cell = document.createElement("div");
+    cell.className = "piece-layer-cell";
+    layer.appendChild(cell);
+  }
+  gameBoardElement.appendChild(layer);
+  gameBoardPieceLayer = layer;
+}
+
+let lastBoardCellPx = 0;
+
+function updateBoardCellSizeVar() {
+  if (!gameBoardElement || !gameBoardElement.offsetParent) return;
+  const w = gameBoardElement.offsetWidth;
+  if (w <= 0) return;
+  const cellPx = w / COLS;
+  if (Math.abs(cellPx - lastBoardCellPx) < 0.5) return;
+  lastBoardCellPx = cellPx;
+  document.documentElement.style.setProperty("--board-cell-px", cellPx + "px");
 }
 
 const PIECE_COLORS = ["#22c55e", "#22d3ee", "#a855f7", "#f97316", "#eab308", "#38bdf8", "#f43f5e"];
 
-function generateNextPiece() {
+function createRandomPiece() {
   const keys = Object.keys(TETROMINOES);
   const randomKey = keys[Math.floor(Math.random() * keys.length)];
-  nextColor = PIECE_COLORS[Math.floor(Math.random() * PIECE_COLORS.length)];
-  nextPiece = {
-    type: randomKey,
-    shapes: TETROMINOES[randomKey]
+  const color = PIECE_COLORS[Math.floor(Math.random() * PIECE_COLORS.length)];
+  return {
+    piece: { type: randomKey, shapes: TETROMINOES[randomKey] },
+    color
   };
+}
+
+function fillNextQueue() {
+  while (nextQueue.length < 3) {
+    nextQueue.push(createRandomPiece());
+  }
+}
+
+const PREVIEW_CELLS = 12; // макс. 4×3 или 3×4; для 3×3 используем 9 клеток
+
+/** По форме фигуры возвращает класс сетки: 3×3 (нет палки), 4×3 (палка лежачая), 3×4 (палка стоячая) */
+function getPreviewGridSize(shape) {
+  for (let r = 0; r < 4; r++) {
+    if (shape[r][0] + shape[r][1] + shape[r][2] + shape[r][3] === 4) return "4x3";
+  }
+  for (let c = 0; c < 4; c++) {
+    if (shape[0][c] + shape[1][c] + shape[2][c] + shape[3][c] === 4) return "3x4";
+  }
+  return "3x3";
+}
+
+function getPreviewDims(gridSize) {
+  if (gridSize === "4x3") return { rows: 3, cols: 4 };
+  if (gridSize === "3x4") return { rows: 4, cols: 3 };
+  return { rows: 3, cols: 3 };
+}
+
+function isPreviewGridWide() {
+  return window.matchMedia("(min-width: 480px)").matches;
 }
 
 function initNextPreviewGrid() {
   if (!nextPreviewElement) return;
   nextPreviewElement.innerHTML = "";
-  for (let i = 0; i < 16; i++) {
-    const cell = document.createElement("div");
-    cell.className = "next-preview-cell";
-    nextPreviewElement.appendChild(cell);
+  for (let i = 0; i < 3; i++) {
+    const item = document.createElement("div");
+    item.className = "next-preview-item";
+    for (let j = 0; j < PREVIEW_CELLS; j++) {
+      const cell = document.createElement("div");
+      cell.className = "preview-cell";
+      item.appendChild(cell);
+    }
+    nextPreviewElement.appendChild(item);
   }
 }
 
+function initHoldPreviewGrid() {
+  if (!holdPreviewElement) return;
+  holdPreviewElement.innerHTML = "";
+  for (let i = 0; i < PREVIEW_CELLS; i++) {
+    const cell = document.createElement("div");
+    cell.className = "preview-cell";
+    holdPreviewElement.appendChild(cell);
+  }
+}
+
+/** Мелькающие звёздочки: появиться → мелькать пару раз → затухнуть → новое место. Размер от величины пустоты. */
+function initTwinkleStars() {
+  const rnd = (min, max) => min + Math.random() * (max - min);
+  const STAR_CHAR = "★";
+
+  const createStar = (layer, zones) => {
+    const z = zones[Math.floor(Math.random() * zones.length)];
+    const left = rnd(z.leftMin, z.leftMax);
+    const top = rnd(z.topMin, z.topMax);
+    const sizePx = Math.round(8 * z.sizeScale + rnd(0, 4));
+    const duration = rnd(4, 6);
+
+    const el = document.createElement("span");
+    el.className = "twinkle-star";
+    el.setAttribute("aria-hidden", "true");
+    el.textContent = STAR_CHAR;
+    el.style.left = `${left}%`;
+    el.style.top = `${top}%`;
+    el.style.fontSize = `${sizePx}px`;
+    el.style.animationDuration = `${duration}s`;
+    el.style.animationDelay = `${rnd(0, 2)}s`;
+    el.dataset.layerId = layer.id;
+    el.dataset.zones = JSON.stringify(zones);
+
+    const restart = () => {
+      const zones = JSON.parse(el.dataset.zones || "[]");
+      const z = zones[Math.floor(Math.random() * zones.length)];
+      el.style.left = `${rnd(z.leftMin, z.leftMax)}%`;
+      el.style.top = `${rnd(z.topMin, z.topMax)}%`;
+      el.style.fontSize = `${Math.round(8 * z.sizeScale + rnd(0, 4))}px`;
+      el.style.animationDuration = `${rnd(4, 6)}s`;
+      el.style.animationDelay = "0s";
+      el.style.animation = "none";
+      el.offsetHeight;
+      el.style.animation = "";
+    };
+
+    el.addEventListener("animationend", restart);
+    layer.appendChild(el);
+  };
+
+  const configs = [
+    {
+      layerId: "twinkle-gamefield",
+      zones: [
+        { leftMin: 0, leftMax: 12, topMin: 0, topMax: 10, sizeScale: 1.3 },
+        { leftMin: 88, leftMax: 100, topMin: 0, topMax: 10, sizeScale: 1.3 },
+        { leftMin: 0, leftMax: 12, topMin: 90, topMax: 100, sizeScale: 1.3 },
+        { leftMin: 88, leftMax: 100, topMin: 90, topMax: 100, sizeScale: 1.3 },
+        { leftMin: 0, leftMax: 6, topMin: 12, topMax: 88, sizeScale: 0.9 },
+        { leftMin: 94, leftMax: 100, topMin: 12, topMax: 88, sizeScale: 0.9 }
+      ],
+      count: 18
+    },
+    {
+      layerId: "twinkle-sidebar",
+      zones: [
+        { leftMin: 8, leftMax: 92, topMin: 0, topMax: 20, sizeScale: 1.1 },
+        { leftMin: 8, leftMax: 92, topMin: 75, topMax: 100, sizeScale: 1.1 },
+        { leftMin: 0, leftMax: 10, topMin: 22, topMax: 72, sizeScale: 0.75 },
+        { leftMin: 90, leftMax: 100, topMin: 22, topMax: 72, sizeScale: 0.75 }
+      ],
+      count: 15
+    },
+    {
+      layerId: "twinkle-menu",
+      zones: [
+        { leftMin: 2, leftMax: 98, topMin: 0, topMax: 15, sizeScale: 0.7 },
+        { leftMin: 2, leftMax: 98, topMin: 85, topMax: 100, sizeScale: 0.7 },
+        { leftMin: 0, leftMax: 8, topMin: 18, topMax: 82, sizeScale: 0.65 },
+        { leftMin: 92, leftMax: 100, topMin: 18, topMax: 82, sizeScale: 0.65 }
+      ],
+      count: 5
+    }
+  ];
+
+  configs.forEach(({ layerId, zones, count }) => {
+    const layer = document.getElementById(layerId);
+    if (!layer) return;
+    for (let i = 0; i < count; i++) {
+      createStar(layer, zones);
+    }
+  });
+}
+
 function renderNextPreview() {
-  if (!nextPreviewElement || !nextPiece) return;
-  const shape = nextPiece.shapes[0];
-  const cells = nextPreviewElement.children;
-  for (let i = 0; i < 16; i++) {
-    const r = Math.floor(i / 4);
-    const c = i % 4;
+  if (!nextPreviewElement) return;
+  const items = nextPreviewElement.querySelectorAll(".next-preview-item");
+  for (let i = 0; i < 3; i++) {
+    const entry = nextQueue[i];
+    const item = items[i];
+    if (!item) continue;
+    const cells = item.children;
+    if (!entry) {
+      item.className = "next-preview-item preview-grid-3x3";
+      for (let j = 0; j < PREVIEW_CELLS; j++) {
+        if (cells[j]) {
+          cells[j].classList.remove("preview-cell--filled");
+          cells[j].style.removeProperty("--cell-color");
+        }
+      }
+      continue;
+    }
+    const shape = entry.piece.shapes[0];
+    const color = entry.color;
+    const gridSize = getPreviewGridSize(shape);
+    const dims = getPreviewDims(gridSize);
+    item.className = "next-preview-item preview-grid-" + gridSize;
+    const totalCells = dims.rows * dims.cols;
+    for (let j = 0; j < totalCells && j < cells.length; j++) {
+      const r = Math.floor(j / dims.cols);
+      const c = j % dims.cols;
+      const cell = cells[j];
+      if (shape[r] && shape[r][c]) {
+        cell.classList.add("preview-cell--filled");
+        cell.style.setProperty("--cell-color", color);
+      } else {
+        cell.classList.remove("preview-cell--filled");
+        cell.style.removeProperty("--cell-color");
+      }
+    }
+    for (let j = totalCells; j < PREVIEW_CELLS; j++) {
+      if (cells[j]) {
+        cells[j].classList.remove("preview-cell--filled");
+        cells[j].style.removeProperty("--cell-color");
+      }
+    }
+  }
+}
+
+function renderHold() {
+  if (!holdPreviewElement) return;
+  const cells = holdPreviewElement.children;
+  if (!holdPiece) {
+    holdPreviewElement.className = "hold-preview hold-preview--main preview-grid-3x3";
+    for (let i = 0; i < PREVIEW_CELLS; i++) {
+      if (cells[i]) {
+        cells[i].classList.remove("preview-cell--filled");
+        cells[i].style.removeProperty("--cell-color");
+      }
+    }
+    return;
+  }
+  const shape = holdPiece.shapes[0];
+  const gridSize = getPreviewGridSize(shape);
+  const dims = getPreviewDims(gridSize);
+  holdPreviewElement.className = "hold-preview hold-preview--main preview-grid-" + gridSize;
+  const totalCells = dims.rows * dims.cols;
+  for (let i = 0; i < totalCells && i < cells.length; i++) {
+    const r = Math.floor(i / dims.cols);
+    const c = i % dims.cols;
     const cell = cells[i];
-    if (shape[r][c]) {
-      cell.classList.add("next-preview-cell--filled");
-      cell.style.setProperty("--cell-color", nextColor);
+    if (shape[r] && shape[r][c]) {
+      cell.classList.add("preview-cell--filled");
+      cell.style.setProperty("--cell-color", holdColor);
     } else {
-      cell.classList.remove("next-preview-cell--filled");
+      cell.classList.remove("preview-cell--filled");
       cell.style.removeProperty("--cell-color");
+    }
+  }
+  for (let i = totalCells; i < PREVIEW_CELLS; i++) {
+    if (cells[i]) {
+      cells[i].classList.remove("preview-cell--filled");
+      cells[i].style.removeProperty("--cell-color");
     }
   }
 }
@@ -344,18 +583,52 @@ function attachEventListeners() {
   startButton.addEventListener("click", startGame);
   restartButton.addEventListener("click", restartGame);
 
-  btnLeft.addEventListener("click", () => handleMove(-1, 0));
-  btnRight.addEventListener("click", () => handleMove(1, 0));
-  if (btnRotateLeft) btnRotateLeft.addEventListener("click", handleRotateLeft);
+  if (modeComputerBtn) {
+    modeComputerBtn.addEventListener("click", () => {
+      inputMode = "computer";
+      modeComputerBtn.classList.add("btn-mode--active");
+      if (modePhoneBtn) modePhoneBtn.classList.remove("btn-mode--active");
+    });
+  }
+  if (modePhoneBtn) {
+    modePhoneBtn.addEventListener("click", () => {
+      inputMode = "phone";
+      modePhoneBtn.classList.add("btn-mode--active");
+      if (modeComputerBtn) modeComputerBtn.classList.remove("btn-mode--active");
+    });
+  }
+
+  if (btnLeft) btnLeft.addEventListener("click", () => handleMove(-1, 0));
+  if (btnRight) btnRight.addEventListener("click", () => handleMove(1, 0));
+  if (btnDown) btnDown.addEventListener("click", () => handleMove(0, 1));
   if (btnRotateRight) btnRotateRight.addEventListener("click", handleRotateRight);
   if (btnPause) btnPause.addEventListener("click", () => { if (!isGameOver && currentPiece) togglePause(); });
+  if (btnPauseGamefield) btnPauseGamefield.addEventListener("click", () => { if (!isGameOver && currentPiece) togglePause(); });
   if (btnDrop) btnDrop.addEventListener("click", () => { if (!isGameOver && currentPiece) handleHardDrop(); });
+  if (btnHold) btnHold.addEventListener("click", () => { if (!isGameOver && currentPiece) handleHold(); });
   if (pauseResumeBtn) pauseResumeBtn.addEventListener("click", () => { if (isPaused) togglePause(); });
 
-  // Ускорение падения при клике/удержании по полю (мышь и касание)
-  gameBoardElement.addEventListener("mousedown", handleBoardMouseDown);
+  const frameMenu = document.querySelector(".frame-menu");
+  if (frameMenu) {
+    frameMenu.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const action = btn.getAttribute("data-action");
+      if (isGameOver) return;
+      if (action === "left") handleMove(-1, 0);
+      else if (action === "right") handleMove(1, 0);
+      else if (action === "down") handleMove(0, 1);
+      else if (action === "rotate") handleRotateRight();
+      else if (action === "hold") { if (currentPiece) handleHold(); }
+      else if (action === "drop") { if (currentPiece) handleHardDrop(); }
+    });
+  }
+
+  if (gameBoardElement) {
+    gameBoardElement.addEventListener("mousedown", handleBoardMouseDown);
+    gameBoardElement.addEventListener("touchstart", handleBoardTouchStart, { passive: false });
+  }
   document.addEventListener("mouseup", handleBoardMouseUp);
-  gameBoardElement.addEventListener("touchstart", handleBoardTouchStart, { passive: false });
   document.addEventListener("touchend", handleBoardTouchEnd);
   document.addEventListener("touchcancel", handleBoardTouchEnd);
 
@@ -419,6 +692,11 @@ function handleKeyDown(event) {
     if (currentPiece) handleHardDrop();
     return;
   }
+  if (key === "ControlLeft" || key === "ControlRight") {
+    event.preventDefault();
+    if (!isGameOver && currentPiece) handleHold();
+    return;
+  }
   if (isPaused || isGameOver || !currentPiece || isHardDropping) return;
   if (key === "ArrowLeft") {
     event.preventDefault();
@@ -428,7 +706,7 @@ function handleKeyDown(event) {
     handleMove(1, 0);
   } else if (key === "ArrowDown") {
     event.preventDefault();
-    handleRotateLeft();
+    handleMove(0, 1);
   } else if (key === "ArrowUp") {
     event.preventDefault();
     handleRotateRight();
@@ -475,7 +753,7 @@ function handleHardDrop() {
       if (bonus > 0) {
         score += bonus;
         updateScoreDisplay();
-        showDropBonusPopup(bonus);
+        showPointsPopup(bonus);
       }
       isHardDropping = false;
       lockPieceAndProceed();
@@ -488,8 +766,13 @@ function handleHardDrop() {
 function startGame() {
   landingScreen.classList.add("screen--hidden");
   gameScreen.classList.remove("screen--hidden");
+  gameScreen.classList.remove("input-mode-computer", "input-mode-phone");
+  gameScreen.classList.add(inputMode === "computer" ? "input-mode-computer" : "input-mode-phone");
   if (gameOverOverlay) gameOverOverlay.classList.add("screen--hidden");
   if (pauseOverlay) pauseOverlay.classList.add("screen--hidden");
+
+  const mainFrame = document.getElementById("main-frame");
+  if (mainFrame) mainFrame.focus();
 
   initGameState();
   spawnPiece();
@@ -497,6 +780,16 @@ function startGame() {
   if (gameBoardWrapper) {
     requestAnimationFrame(() => {
       gameBoardWrapper.classList.add("game-board-wrapper--visible");
+      updateBoardCellSizeVar();
+      let rafId = null;
+      const ro = new ResizeObserver(() => {
+        if (rafId !== null) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          updateBoardCellSizeVar();
+        });
+      });
+      if (gameBoardElement) ro.observe(gameBoardElement);
     });
   }
 }
@@ -524,36 +817,32 @@ function initGameState() {
   currentDropInterval = NORMAL_DROP_INTERVAL;
   dropElapsed = 0;
   piecesPlaced = 0;
-  nextPiece = null;
-  nextColor = PIECE_COLORS[0];
-  generateNextPiece();
+  nextQueue = [];
+  fillNextQueue();
+  const initialHold = createRandomPiece();
+  holdPiece = initialHold.piece;
+  holdColor = initialHold.color;
+  holdUsed = false;
   updateScoreDisplay();
   clearIntervalSafe();
   if (pauseOverlay) pauseOverlay.classList.add("screen--hidden");
   render();
   renderNextPreview();
+  renderHold();
 }
 
 function createEmptyBoard() {
-  const arr = [];
-  for (let r = 0; r < ROWS; r++) {
-    const row = new Array(COLS).fill(0);
-    arr.push(row);
-  }
-  return arr;
+  return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
 function spawnPiece() {
   dropElapsed = 0;
-  if (nextPiece) {
-    currentPiece = nextPiece;
-    currentColor = nextColor;
-  } else {
-    generateNextPiece();
-    currentPiece = nextPiece;
-    currentColor = nextColor;
-  }
-  generateNextPiece();
+  holdUsed = false;
+  if (nextQueue.length === 0) fillNextQueue();
+  const entry = nextQueue.shift();
+  fillNextQueue();
+  currentPiece = entry.piece;
+  currentColor = entry.color;
   currentRotation = 0;
   const shape = currentPiece.shapes[currentRotation];
   currentRow = 0;
@@ -563,6 +852,7 @@ function spawnPiece() {
     handleGameOver();
   } else {
     renderNextPreview();
+    renderHold();
   }
 }
 
@@ -604,15 +894,33 @@ function canMove(dx, dy) {
   return canPlace(shape, currentRow + dy, currentCol + dx);
 }
 
-function handleRotateLeft() {
-  if (!currentPiece || isGameOver || isPaused || isHardDropping) return;
-  const len = currentPiece.shapes.length;
-  const nextRotation = (currentRotation - 1 + len) % len;
-  const nextShape = currentPiece.shapes[nextRotation];
-  if (canPlace(nextShape, currentRow, currentCol)) {
-    currentRotation = nextRotation;
-    render();
+function handleHold() {
+  if (!currentPiece || isGameOver || isPaused || isHardDropping || isClearingLines || holdUsed) return;
+  holdUsed = true;
+  const shape = getCurrentShape();
+  const swapPiece = currentPiece;
+  const swapColor = currentColor;
+  currentPiece = holdPiece;
+  currentColor = holdColor;
+  holdPiece = swapPiece;
+  holdColor = swapColor;
+  if (!currentPiece) {
+    if (nextQueue.length === 0) fillNextQueue();
+    const entry = nextQueue.shift();
+    fillNextQueue();
+    currentPiece = entry.piece;
+    currentColor = entry.color;
   }
+  currentRotation = 0;
+  currentRow = 0;
+  currentCol = Math.floor((COLS - 4) / 2);
+  if (!canPlace(currentPiece.shapes[0], currentRow, currentCol)) {
+    handleGameOver();
+    return;
+  }
+  render();
+  renderHold();
+  renderNextPreview();
 }
 
 function handleRotateRight() {
@@ -718,13 +1026,10 @@ function clearLines(onCleared) {
     }
 
     if (linesCleared > 0) {
-      const points = linesCleared * BASE_LINE_SCORE * linesCleared;
-      score += points;
+      score += linesCleared * BASE_LINE_SCORE * linesCleared;
       updateScoreDisplay();
-      if (linesCleared >= 1) {
-        showScorePopup(linesCleared);
-        triggerLineClearEffects(linesCleared);
-      }
+      showPointsPopup(linesCleared === 1 ? "+100" : `+${linesCleared * BASE_LINE_SCORE} x ${linesCleared}`);
+      triggerLineClearEffects(linesCleared);
     }
 
     isClearingLines = false;
@@ -759,29 +1064,14 @@ function spawnSparks() {
   }
 }
 
-function showScorePopup(linesCleared) {
-  const wrapper = gameBoardElement && gameBoardElement.parentElement;
-  if (!wrapper) return;
-  const text = linesCleared === 1 ? "+100" : "+" + (linesCleared * BASE_LINE_SCORE) + " x " + linesCleared;
-  const popup = document.createElement("div");
-  popup.className = "score-popup";
-  popup.textContent = text;
-  wrapper.appendChild(popup);
-  setTimeout(() => {
-    popup.remove();
-  }, 1000);
-}
-
-function showDropBonusPopup(points) {
-  const wrapper = gameBoardElement && gameBoardElement.parentElement;
+function showPointsPopup(text) {
+  const wrapper = gameBoardElement?.parentElement;
   if (!wrapper) return;
   const popup = document.createElement("div");
   popup.className = "score-popup";
-  popup.textContent = "+" + points;
+  popup.textContent = String(text).startsWith("+") ? text : "+" + text;
   wrapper.appendChild(popup);
-  setTimeout(() => {
-    popup.remove();
-  }, 1000);
+  setTimeout(() => popup.remove(), 1000);
 }
 
 function animateLineClear(rows, done) {
@@ -807,7 +1097,17 @@ function animateLineClear(rows, done) {
 }
 
 function updateScoreDisplay() {
-  scoreElement.textContent = `Очки: ${score}`;
+  if (scoreElement) scoreElement.textContent = `Очки: ${score}`;
+}
+
+function getShadowRow() {
+  if (!currentPiece) return currentRow;
+  const shape = getCurrentShape();
+  let row = currentRow;
+  while (canPlace(shape, row + 1, currentCol)) {
+    row += 1;
+  }
+  return row;
 }
 
 function render() {
@@ -816,30 +1116,54 @@ function render() {
     for (let c = 0; c < COLS; c++) {
       const index = r * COLS + c;
       const cell = cells[index];
+      cell.classList.remove("cell--filled", "cell--shadow", "cell--current");
+      cell.style.removeProperty("--cell-color");
       const value = board[r][c];
       if (value) {
         cell.classList.add("cell--filled");
         cell.style.setProperty("--cell-color", value);
-      } else {
-        cell.classList.remove("cell--filled");
-        cell.style.removeProperty("--cell-color");
       }
     }
   }
 
+  if (gameBoardPieceLayer) {
+    const pieceCells = gameBoardPieceLayer.children;
+    for (let i = 0; i < pieceCells.length; i++) {
+      pieceCells[i].classList.remove("piece-layer-cell--filled");
+      pieceCells[i].style.removeProperty("--cell-color");
+    }
+  }
   if (!currentPiece) return;
 
   const shape = getCurrentShape();
+  const shadowRow = getShadowRow();
+
   for (let r = 0; r < 4; r++) {
     for (let c = 0; c < 4; c++) {
       if (!shape[r][c]) continue;
-      const br = currentRow + r;
+      const br = shadowRow + r;
       const bc = currentCol + c;
-      if (br >= 0 && br < ROWS && bc >= 0 && bc < COLS) {
+      if (br >= 0 && br < ROWS && bc >= 0 && bc < COLS && !board[br][bc]) {
         const index = br * COLS + bc;
-        const cell = cells[index];
-        cell.classList.add("cell--filled");
-        cell.style.setProperty("--cell-color", currentColor);
+        cells[index].classList.add("cell--shadow");
+        cells[index].style.setProperty("--cell-color", currentColor);
+      }
+    }
+  }
+
+  if (gameBoardPieceLayer) {
+    const pieceCells = gameBoardPieceLayer.children;
+    for (let r = 0; r < 4; r++) {
+      for (let c = 0; c < 4; c++) {
+        if (!shape[r][c]) continue;
+        const br = currentRow + r;
+        const bc = currentCol + c;
+        if (br >= 0 && br < ROWS && bc >= 0 && bc < COLS) {
+          const index = br * COLS + bc;
+          const cell = pieceCells[index];
+          cell.classList.add("piece-layer-cell--filled");
+          cell.style.setProperty("--cell-color", currentColor);
+        }
       }
     }
   }
